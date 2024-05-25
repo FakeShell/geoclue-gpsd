@@ -36,6 +36,7 @@ conf.set10('GCLUE_USE_CDMA_SOURCE', get_option('cdma-source'))
 conf.set10('GCLUE_USE_MODEM_GPS_SOURCE', get_option('modem-gps-source'))
 conf.set10('GCLUE_USE_NMEA_SOURCE', get_option('nmea-source'))
 conf.set10('GCLUE_USE_COMPASS', get_option('compass'))
+conf.set10('GCLUE_USE_GPSD_SOURCE', get_option('gpsd-source'))
 
 configure_file(output: 'config.h', configuration : conf)
 configinc = include_directories('.')
@@ -94,6 +95,7 @@ summary = '''
         Modem GPS source:         @9@
         Network NMEA source:      @10@
         Compass:                  @11@
+        GPSD source:              @12@
 '''.format(gclue_version,
            get_option('prefix'),
            cc.get_id(),
@@ -105,5 +107,6 @@ summary = '''
            get_option('cdma-source'),
            get_option('modem-gps-source'),
            get_option('nmea-source'),
-           get_option('compass'))
+           get_option('compass'),
+           get_option('gpsd-source'))
 message(summary)

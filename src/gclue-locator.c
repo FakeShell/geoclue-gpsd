@@ -48,6 +48,10 @@
 #include "gclue-nmea-source.h"
 #endif
 
+#if GCLUE_USE_GPSD_SOURCE
+#include "gclue-gpsd-source.h"
+#endif
+
 /* This class is like a master location source that hides all individual
  * location sources from rest of the code
  */
@@ -452,6 +456,13 @@ gclue_locator_constructed (GObject *object)
                         submit_source = GCLUE_LOCATION_SOURCE (nmea);
                 }
 
+        }
+#endif
+#if GCLUE_USE_GPSD_SOURCE
+        if (gclue_config_get_enable_gpsd_source (gconfig)) {
+                GClueGpsdSource *gpsd = gclue_gpsd_source_get_singleton ();
+                locator->priv->sources = g_list_append (locator->priv->sources,
+                                                        gpsd);
         }
 #endif
 

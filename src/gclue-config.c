@@ -47,6 +47,7 @@ struct _GClueConfigPrivate
         gboolean enable_wifi_source;
         gboolean enable_compass;
         gboolean enable_static_source;
+        gboolean enable_gpsd_source;
         char *wifi_submit_url;
         char *wifi_submit_nick;
         char *nmea_socket;
@@ -135,7 +136,7 @@ load_app_configs (GClueConfig *config)
 {
         const char *known_groups[] = { "agent", "wifi", "3g", "cdma",
                                        "modem-gps", "network-nmea", "compass",
-                                       "static-source", NULL };
+                                       "static-source", "gpsd", NULL };
         GClueConfigPrivate *priv = config->priv;
         gsize num_groups = 0, i;
         g_auto(GStrv) groups = NULL;
@@ -388,6 +389,14 @@ load_modem_gps_config (GClueConfig *config, gboolean initial)
 }
 
 static void
+load_gpsd_config (GClueConfig *config, gboolean initial)
+{
+        config->priv->enable_gpsd_source =
+                load_enable_source_config (config, "gpsd", initial,
+                                           config->priv->enable_gpsd_source);
+}
+
+static void
 load_network_nmea_config (GClueConfig *config, gboolean initial)
 {
         g_autoptr(GError) error = NULL;
@@ -447,6 +456,7 @@ load_config_file (GClueConfig *config, const char *path, gboolean initial) {
         load_3g_config (config, initial);
         load_cdma_config (config, initial);
         load_modem_gps_config (config, initial);
+        load_gpsd_config (config, initial);
         load_network_nmea_config (config, initial);
         load_compass_config (config, initial);
         load_static_source_config (config, initial);
@@ -515,6 +525,8 @@ gclue_config_print (GClueConfig *config)
                  config->priv->enable_cdma_source? "enabled": "disabled");
         g_debug ("Modem GPS source: %s",
                  config->priv->enable_modem_gps_source? "enabled": "disabled");
+        g_debug ("GPSD source: %s",
+                 config->priv->enable_gpsd_source? "enabled": "disabled");
         g_debug ("WiFi source: %s",
                  config->priv->enable_wifi_source? "enabled": "disabled");
         redacted_locate_url = redact_api_key (config->priv->wifi_url);
@@ -768,6 +780,12 @@ gboolean
 gclue_config_get_enable_nmea_source (GClueConfig *config)
 {
         return config->priv->enable_nmea_source;
+}
+
+gboolean
+gclue_config_get_enable_gpsd_source (GClueConfig *config)
+{
+        return config->priv->enable_gpsd_source;
 }
 
 void

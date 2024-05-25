@@ -94,6 +94,8 @@ gboolean            gclue_config_get_enable_nmea_source (GClueConfig     *config
 gboolean            gclue_config_get_enable_compass     (GClueConfig     *config);
 gboolean            gclue_config_get_enable_static_source
                                                         (GClueConfig *config);
+gboolean            gclue_config_get_enable_gpsd_source
+                                                        (GClueConfig *config);
 
 G_END_DECLS
 

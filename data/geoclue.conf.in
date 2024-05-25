@@ -39,6 +39,12 @@ enable=true
 # Enable Modem-GPS source
 enable=true
 
+# GPSD source configuration options
+[gpsd]
+
+# Enable GPSD source
+enable=true
+
 # WiFi source configuration options
 [wifi]
 

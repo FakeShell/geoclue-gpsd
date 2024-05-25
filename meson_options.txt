@@ -25,6 +25,9 @@ option('nmea-source',
 option('compass',
        type: 'boolean', value: true,
        description: 'Enable setting heading from net.hadess.SensorProxy compass')
+option('gpsd-source',
+       type: 'boolean', value: true,
+       description: 'Enable network GPSD source (requires GPSD dbus signal)')
 option('enable-backend',
        type: 'boolean', value: true,
        description: 'Enable backend (the geoclue service)')

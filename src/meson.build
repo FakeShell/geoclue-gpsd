@@ -62,6 +62,12 @@ if get_option('compass')
     sources += [ compass_iface_sources , 'gclue-compass.h', 'gclue-compass.c' ]
 endif
 
+if get_option('gpsd-source')
+    geoclue_deps += [ dependency('dbus-1'),
+                      dependency('dbus-glib-1') ]
+    sources += [ 'gclue-gpsd-source.h', 'gclue-gpsd-source.c' ]
+endif
+
 c_args = [ '-DG_LOG_DOMAIN="Geoclue"' ]
 link_with = [ libgeoclue_public_api ]
 executable('geoclue',
