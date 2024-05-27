@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
+#include <gps.h>
 #include <dbus/dbus.h>
 #include <dbus/dbus-glib-lowlevel.h>
 #include "gclue-gpsd-source.h"
@@ -30,9 +31,12 @@
 #include "gclue-enum-types.h"
 
 struct _GClueGpsdSourcePrivate {
-        GCancellable *cancellable;
+        GCancellable         *cancellable;
 
-        DBusConnection *system_bus;
+        DBusConnection       *system_bus;
+
+        GThread              *gpsd_thread;
+        gboolean             gpsd_thread_running;
 };
 
 G_DEFINE_TYPE_WITH_CODE (GClueGpsdSource,
@@ -50,9 +54,42 @@ connect_to_service (GClueGpsdSource *source);
 static void
 disconnect_from_service (GClueGpsdSource *source);
 
+#define GPSD_SERVER        "localhost"
+#define GPSD_PORT          "2947"
+
+static void
+start_gpsd_search (void)
+{
+        struct gps_data_t gps_data;
+        int ret;
+
+        if ((ret = gps_open (GPSD_SERVER, GPSD_PORT, &gps_data)) == -1)
+                return;
+
+        gps_stream (&gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
+
+        while (1)
+                sleep (1); // keep gpsd active
+
+        gps_stream (&gps_data, WATCH_DISABLE, NULL);
+        gps_close (&gps_data);
+}
+
+static gpointer
+gpsd_thread_func (gpointer data)
+{
+        GClueGpsdSource *source = GCLUE_GPSD_SOURCE (data);
+        GClueGpsdSourcePrivate *priv = source->priv;
+
+        while (priv->gpsd_thread_running)
+                start_gpsd_search ();
+
+        return NULL;
+}
+
 static void
 set_location (GClueLocation *location,
-                 gpointer user_data)
+               gpointer user_data)
 {
         GClueGpsdSource *source = GCLUE_GPSD_SOURCE (user_data);
         gclue_location_source_set_location (GCLUE_LOCATION_SOURCE (source), location);
@@ -126,6 +163,13 @@ on_signal (int unused,
                 g_debug ("GPSD: Bearing: %f degrees", course);
                 g_debug ("GPSD: Horizontal Accuracy: %f meters", horizontal_uncertainty);
                 g_debug ("GPSD: Vertical Accuracy: %f meters", altitude_uncertainty);
+                g_debug ("GPSD: Mode: %d", mode);
+                g_debug ("GPSD: Time Uncertainty: %f", time_uncertainty);
+                g_debug ("GPSD: Course Uncertainty: %f", course_uncertainty);
+                g_debug ("GPSD: Speed Uncertainty: %f", speed_uncertainty);
+                g_debug ("GPSD: Climb: %f", climb);
+                g_debug ("GPSD: Climb Uncertainty: %f", climb_uncertainty);
+                g_debug ("GPSD: Source Name: %s", name);
 
                 set_location (location, obj);
                 g_object_unref (location);
@@ -152,6 +196,9 @@ connect_to_service (GClueGpsdSource *source)
                                     (DBusHandleMessageFunction) on_signal,
                                     source,
                                     NULL);
+
+        priv->gpsd_thread_running = TRUE;
+        priv->gpsd_thread = g_thread_new ("gpsd-thread", gpsd_thread_func, source);
 }
 
 static void
@@ -162,8 +209,8 @@ disconnect_from_service (GClueGpsdSource *source)
         g_cancellable_cancel (priv->cancellable);
 
         if (priv->system_bus) {
-                dbus_connection_close(priv->system_bus);
-                dbus_connection_unref(priv->system_bus);
+                dbus_connection_close (priv->system_bus);
+                dbus_connection_unref (priv->system_bus);
                 priv->system_bus = NULL;
         }
 }
@@ -181,6 +228,12 @@ gclue_gpsd_source_finalize (GObject *ggpsd)
                 dbus_connection_close (priv->system_bus);
                 dbus_connection_unref (priv->system_bus);
                 priv->system_bus = NULL;
+        }
+
+        priv->gpsd_thread_running = FALSE;
+        if (priv->gpsd_thread) {
+                g_thread_join (priv->gpsd_thread);
+                priv->gpsd_thread = NULL;
         }
 }
 
@@ -209,8 +262,8 @@ gclue_gpsd_source_init (GClueGpsdSource *source)
         GClueAccuracyLevel level;
         level = GCLUE_ACCURACY_LEVEL_EXACT;
         g_debug ("Setting accuracy level to %s: %u",
-                 G_OBJECT_TYPE_NAME(source), level);
-        g_object_set (G_OBJECT(source),
+                 G_OBJECT_TYPE_NAME (source), level);
+        g_object_set (G_OBJECT (source),
                       "available-accuracy-level", level, NULL);
 
         connect_to_service (source);

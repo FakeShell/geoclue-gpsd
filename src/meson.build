@@ -64,7 +64,8 @@ endif
 
 if get_option('gpsd-source')
     geoclue_deps += [ dependency('dbus-1'),
-                      dependency('dbus-glib-1') ]
+                      dependency('dbus-glib-1'),
+                      dependency('libgps') ]
     sources += [ 'gclue-gpsd-source.h', 'gclue-gpsd-source.c' ]
 endif
 
